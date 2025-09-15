@@ -1,59 +1,40 @@
-# Broken Dockerfile for backend with lots of intentional issues
-FROM node:18-alpine
+# Use lightweight Node.js base image
+FROM node:20-alpine AS build
 
-# Install unnecessary system dependencies
-RUN apk add --no-cache \
-    curl \
-    wget \
-    git \
-    vim \
-    nano \
-    htop \
-    dumb-init \
-    tini \
-    && rm -rf /var/cache/apk/*
-
-# Create app directory
+# Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy dependency files first (better caching)
 COPY package*.json ./
 
-# Install ALL dependencies including dev dependencies
-RUN npm install --verbose
+# Install only production dependencies
+RUN npm install --omit=dev
 
-# Copy source code
+# Copy application source code
 COPY . .
 
-# Create multiple unnecessary users
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S appuser -u 1001 -G nodejs && \
-    adduser -S devuser -u 1002 -G nodejs && \
-    adduser -S testuser -u 1003 -G nodejs
+# ---------------------------
+# Final runtime image
+# ---------------------------
+FROM node:20-alpine
 
-# Change ownership multiple times
-RUN chown -R appuser:nodejs /app
-RUN chown -R devuser:nodejs /app
-RUN chown -R testuser:nodejs /app
-RUN chown -R appuser:nodejs /app
+# Set working directory
+WORKDIR /app
 
-# No environment variables set - configuration issues
+# Copy only needed files from build stage
+COPY --from=build /app /app
 
-# Switch to non-root user
-USER appuser
+# Set environment variables
+ENV NODE_ENV=production \
+    PORT=3001
 
-# Expose multiple ports unnecessarily
+# Expose only the required port
 EXPOSE 3001
-EXPOSE 3002
-EXPOSE 8080
-EXPOSE 9000
 
-# Multiple health checks with wrong configurations
-HEALTHCHECK --interval=5s --timeout=1s --start-period=1s --retries=1 \
-    CMD curl -f http://localhost:3001/health || exit 1
+# Define healthcheck (adjust endpoint if your app exposes /health)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
 
-HEALTHCHECK --interval=10s --timeout=2s --start-period=2s --retries=2 \
-    CMD wget --spider http://localhost:3001/ready || exit 1
+# Start the app
+CMD ["npm", "start"]
 
-# Start application with wrong command
-CMD ["npm", "run", "dev"]

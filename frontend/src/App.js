@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // Wrong API base URL - connection issue
-const API_BASE_URL = 'http://localhost:8080'; 
+const API_BASE_URL = 'http://4.157.13.48'; 
 
 function App() {
   const [todos, setTodos] = useState([]);
