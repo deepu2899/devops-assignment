@@ -311,3 +311,4 @@ kubectl get hpa
 
 ---
 
+link of the video : https://drive.google.com/file/d/1ysDQpEZuJYyjTi6w91L-wTrBEUrrL5Ao/view?usp=sharing
